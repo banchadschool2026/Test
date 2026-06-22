@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมคูณเลขจับคำตอบด้วยมือ</title>
+
+<style>
+    body{
+        margin:0;
+        overflow:hidden;
+        background:#222;
+        font-family:Arial,sans-serif;
+        text-align:center;
+        color:white;
+    }
+
+    #gameArea{
+        position:relative;
+        width:100vw;
+        height:100vh;
+        overflow:hidden;
+    }
+
+    video, canvas{
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        transform: scaleX(-1);
+    }
+
+    #question{
+        position:absolute;
+        top:10px;
+        left:50%;
+        transform:translateX(-50%);
+        font-size:42px;
+        background:rgba(0,0,0,.6);
+        padding:10px 30px;
+        border-radius:15px;
+        z-index:100;
+    }
+
+    #score{
+        position:absolute;
+        top:80px;
+        left:20px;
+        font-size:30px;
+        z-index:100;
+    }
+
+    .answer{
+        position:absolute;
+        width:120px;
+        height:120px;
+        border-radius:50%;
+        font-size:40px;
+        font-weight:bold;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:white;
+    }
+
+    .correct{
+        background:#28a745;
+    }
+
+    .wrong{
+        background:#dc3545;
+    }
+</style>
+</head>
+<body>
+
+<div id="gameArea">
+
+    <div id="question"></div>
+    <div id="score">คะแนน : 0</div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let score = 0;
+let handX = 0;
+let handY = 0;
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let answers = [];
+let correctAnswer = 0;
+
+function newQuestion(){
+
+    answers.forEach(a=>a.remove());
+    answers=[];
+
+    let a = Math.floor(Math.random()*90)+10;
+    let b = Math.floor(Math.random()*90)+10;
+
+    correctAnswer = a*b;
+
+    let wrong;
+    do{
+        wrong = correctAnswer +
+               Math.floor(Math.random()*100)-50;
+    }while(wrong===correctAnswer || wrong<0);
+
+    document.getElementById("question").innerText =
+        `${a} × ${b} = ?`;
+
+    createAnswer(correctAnswer,true,25);
+    createAnswer(wrong,false,70);
+}
+
+function createAnswer(value,isCorrect,leftPos){
+
+    const div = document.createElement("div");
+    div.className = "answer " +
+                   (isCorrect?"correct":"wrong");
+
+    div.innerText = value;
+    div.style.left = leftPos + "%";
+    div.style.top = "-120px";
+
+    document.getElementById("gameArea")
+        .appendChild(div);
+
+    let y = -120;
+
+    const fall = setInterval(()=>{
+
+        y += 4;
+        div.style.top = y+"px";
+
+        // ตรวจจับการชนกับมือ
+        let rect = div.getBoundingClientRect();
+
+        if(
+            handX > rect.left &&
+            handX < rect.right &&
+            handY > rect.top &&
+            handY < rect.bottom
+        ){
+
+            clearInterval(fall);
+
+            if(isCorrect){
+                score++;
+            }else{
+                score--;
+            }
+
+            document.getElementById("score")
+            .innerText = "คะแนน : " + score;
+
+            setTimeout(newQuestion,300);
+        }
+
+        // ตกถึงพื้น
+        if(y > window.innerHeight){
+            clearInterval(fall);
+            setTimeout(newQuestion,300);
+        }
+
+    },30);
+
+    answers.push(div);
+}
+
+// ===== MediaPipe =====
+
+const hands = new Hands({
+    locateFile: file =>
+      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+});
+
+hands.setOptions({
+    maxNumHands:1,
+    modelComplexity:1,
+    minDetectionConfidence:0.7,
+    minTrackingConfidence:0.7
+});
+
+hands.onResults(results=>{
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    if(results.multiHandLandmarks.length){
+
+        let lm = results.multiHandLandmarks[0][8]; // ปลายนิ้วชี้
+
+        handX = canvas.width - (lm.x*canvas.width);
+        handY = lm.y*canvas.height;
+
+        ctx.beginPath();
+        ctx.arc(handX,handY,20,0,Math.PI*2);
+        ctx.fillStyle="yellow";
+        ctx.fill();
+    }
+});
+
+const camera = new Camera(video,{
+    onFrame: async ()=>{
+        await hands.send({image:video});
+    },
+    width:640,
+    height:480
+});
+
+camera.start();
+
+newQuestion();
+</script>
+
+</body>
+</html>
