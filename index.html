@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมตอบคำถามเครื่องดนตรี</title>
+
+<style>
+    body{
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg,#4facfe,#00f2fe);
+        text-align:center;
+        padding:20px;
+        color:#fff;
+    }
+
+    .game-box{
+        max-width:700px;
+        margin:auto;
+        background:rgba(255,255,255,0.15);
+        padding:25px;
+        border-radius:20px;
+        backdrop-filter: blur(10px);
+    }
+
+    h1{
+        margin-bottom:10px;
+    }
+
+    #question{
+        font-size:26px;
+        margin:25px 0;
+    }
+
+    .choice{
+        display:block;
+        width:100%;
+        margin:10px auto;
+        padding:15px;
+        border:none;
+        border-radius:10px;
+        font-size:20px;
+        cursor:pointer;
+        background:#fff;
+        color:#333;
+    }
+
+    .choice:hover{
+        background:#ffe082;
+    }
+
+    #timer,#score{
+        font-size:22px;
+        margin:10px;
+    }
+
+    #result{
+        font-size:30px;
+        margin-top:20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="game-box">
+    <h1>🎵 เกมตอบคำถามเครื่องดนตรี 🎵</h1>
+
+    <div id="timer">เวลา: 30 วินาที</div>
+    <div id="score">คะแนน: 0</div>
+
+    <div id="question"></div>
+
+    <div id="choices"></div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+
+const questions = [
+{
+    q:"ข้อ 1 เครื่องดนตรีชนิดใดเป็นเครื่องดนตรีไทย?",
+    choices:["กีตาร์","ซอด้วง","ไวโอลิน","เปียโน"],
+    answer:"ซอด้วง"
+},
+{
+    q:"ข้อ 2 เครื่องดนตรีชนิดใดเป็นเครื่องดนตรีสากล?",
+    choices:["ระนาดเอก","กลองยาว","เปียโน","ขิม"],
+    answer:"เปียโน"
+},
+{
+    q:"ข้อ 3 เครื่องดนตรีไทยชนิดใดใช้ตี?",
+    choices:["ขลุ่ย","ระนาดเอก","ซออู้","จะเข้"],
+    answer:"ระนาดเอก"
+},
+{
+    q:"ข้อ 4 เครื่องดนตรีสากลชนิดใดมีสาย?",
+    choices:["ทรัมเป็ต","กีตาร์","กลอง","ฟลูต"],
+    answer:"กีตาร์"
+},
+{
+    q:"ข้อ 5 ขลุ่ยเป็นเครื่องดนตรีประเภทใด?",
+    choices:["เป่า","ตี","สี","ดีด"],
+    answer:"เป่า"
+},
+{
+    q:"ข้อ 6 ไวโอลินเป็นเครื่องดนตรีประเภทใด?",
+    choices:["ดีด","ตี","สี","เป่า"],
+    answer:"สี"
+},
+{
+    q:"ข้อ 7 เครื่องดนตรีไทยชนิดใดใช้ดีด?",
+    choices:["จะเข้","ฉิ่ง","โทน","ขลุ่ย"],
+    answer:"จะเข้"
+},
+{
+    q:"ข้อ 8 เครื่องดนตรีสากลชนิดใดใช้เป่า?",
+    choices:["เปียโน","แซกโซโฟน","ไวโอลิน","กีตาร์"],
+    answer:"แซกโซโฟน"
+},
+{
+    q:"ข้อ 9 ฉิ่งจัดเป็นเครื่องดนตรีประเภทใด?",
+    choices:["ตี","สี","เป่า","ดีด"],
+    answer:"ตี"
+},
+{
+    q:"ข้อ 10 เครื่องดนตรีใดเป็นเครื่องดนตรีไทย?",
+    choices:["แซกโซโฟน","ทรัมเป็ต","ขิม","กลองชุด"],
+    answer:"ขิม"
+}
+];
+
+let currentQuestion = 0;
+let score = 0;
+let timeLeft = 30;
+
+const questionEl = document.getElementById("question");
+const choicesEl = document.getElementById("choices");
+const timerEl = document.getElementById("timer");
+const scoreEl = document.getElementById("score");
+const resultEl = document.getElementById("result");
+
+function loadQuestion(){
+    if(currentQuestion >= questions.length){
+        endGame();
+        return;
+    }
+
+    let q = questions[currentQuestion];
+    questionEl.innerText = q.q;
+    choicesEl.innerHTML = "";
+
+    q.choices.forEach(choice=>{
+        let btn = document.createElement("button");
+        btn.className = "choice";
+        btn.innerText = choice;
+
+        btn.onclick = ()=>{
+            if(choice === q.answer){
+                score++;
+                scoreEl.innerText = "คะแนน: " + score;
+            }
+            currentQuestion++;
+            loadQuestion();
+        }
+
+        choicesEl.appendChild(btn);
+    });
+}
+
+function endGame(){
+    questionEl.style.display="none";
+    choicesEl.style.display="none";
+
+    resultEl.innerHTML = `
+    🏆 จบเกม <br><br>
+    คุณได้ ${score} / ${questions.length} คะแนน
+    `;
+}
+
+let timer = setInterval(()=>{
+    timeLeft--;
+    timerEl.innerText = "เวลา: " + timeLeft + " วินาที";
+
+    if(timeLeft <= 0){
+        clearInterval(timer);
+        endGame();
+    }
+},1000);
+
+loadQuestion();
+
+</script>
+
+</body>
+</html>
